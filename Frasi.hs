@@ -7,9 +7,9 @@ import System.Exit
 type Probs = M.Map String Int
 
 genFrase :: String -> Int -> StdGen -> String
-genFrase str len randGen = unwords $ reverse $ fst $ foldl addNextWord ([firstWord], randGen) [1..len]
+genFrase str len randGen = unwords $ reverse $ fst $ foldl addNextWord ([firstWord], randGen') [1..len]
   where probs = genProb $ words str
-        firstWord = fst $ randomElement (M.keys probs) randGen --FIXME non aggiorna randGen
+        (firstWord, randGen') = randomElement (M.keys probs) randGen
         addNextWord :: ([String], StdGen) -> a -> ([String], StdGen)
         addNextWord ((x:xs), randGen) _ = (next:x:xs, randGen')
           where (next, randGen') = nextWord probs x randGen
@@ -38,7 +38,7 @@ addProb p (x:y:xn) = addProb (M.insertWith (\_ a -> M.insertWith (+) y 1 a) x (M
 
 main = do
     args <- getArgs
-    if length args < 2 then do
+    if length args /= 2 then do
         putStrLn "Usage: frasi [number of words to generate] [file to analyze]"
         exitFailure
     else return ()
