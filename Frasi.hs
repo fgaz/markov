@@ -1,31 +1,31 @@
 import System.IO
-import Control.Monad
 import qualified Data.Map as M
 import System.Random
-import qualified Data.Maybe
+import System.Environment
+import System.Exit
 
 type Probs = M.Map String Int
 
-genFrase :: String -> StdGen -> Int -> String
-genFrase str randGen len = unwords $ reverse $ fst $ foldl addNextWord (["sono"], randGen) [1..len]
+genFrase :: String -> Int -> StdGen -> String
+genFrase str len randGen = unwords $ reverse $ fst $ foldl addNextWord ([firstWord], randGen) [1..len]
   where probs = genProb $ words str
+        firstWord = fst $ randomElement (M.keys probs) randGen --FIXME non aggiorna randGen
         addNextWord :: ([String], StdGen) -> a -> ([String], StdGen)
-        addNextWord ((x:xs), r) _ = ((fst nw):x:xs, snd nw)
-          where nw = nextWord probs r x
+        addNextWord ((x:xs), randGen) _ = (next:x:xs, randGen')
+          where (next, randGen') = nextWord probs x randGen
 
-nextWord :: M.Map String Probs -> StdGen -> String -> (String, StdGen)
---random bilanciato $ elementi lookup
-nextWord probs randGen prevWord = weightedRand probs' randGen --TODO se la lunghezza è zero...?
-  where probs' = M.toList mapProbs'
-        mapProbs' = case M.lookup prevWord probs of Just a -> a
-                                                    Nothing -> M.empty
+nextWord :: M.Map String Probs -> String -> StdGen -> (String, StdGen)
+nextWord probs prevWord randGen = case mapProbs' of Just a  -> weightedRandom (M.toList a) randGen
+                                                    Nothing -> randomElement (M.keys probs) randGen --fallback to random word
+  where mapProbs' = M.lookup prevWord probs
 
+randomElement :: [a] -> StdGen -> (a, StdGen)
+randomElement list randGen = (list !! randomIndex , randGen')
+  where (randomIndex, randGen') = randomR (0,length list - 1) randGen
 
-weightedRand :: [(String,Int)] -> StdGen -> (String, StdGen)
-weightedRand [] randGen = ("ERRORE", randGen) --FIXME orribile e non generico, correggere l'errore in nextword
-weightedRand list randGen = ((weightedList !! r), randGen')
+weightedRandom :: [(a,Int)] -> StdGen -> (a, StdGen)
+weightedRandom list randGen = randomElement weightedList randGen
   where weightedList = concat $ map (\(x,prob) -> replicate prob x) list
-        (r, randGen') = randomR (0,length list - 1) randGen
 
 
 genProb = addProb M.empty
@@ -37,10 +37,13 @@ addProb p (x:y:xn) = addProb (M.insertWith (\_ a -> M.insertWith (+) y 1 a) x (M
 
 
 main = do
-    handle <- openFile "i_promessi_sposi.txt" ReadMode
+    args <- getArgs
+    if length args < 2 then do
+        putStrLn "Usage: frasi [number of words to generate] [file to analyze]"
+        exitFailure
+    else return ()
+    handle <- openFile (args !! 1) ReadMode
     contents <- hGetContents handle
     randGen <- getStdGen
-    putStrLn "Lunghezza frase?"
-    --len <- readLn
-    let len = "300"
-    putStrLn $ genFrase contents randGen $ read len
+    let len = read $ head args
+    putStrLn $ genFrase contents len randGen
