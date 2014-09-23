@@ -4,7 +4,7 @@ import System.Random
 import System.Environment
 import System.Exit
 
-type Probs = M.Map String Int
+type Probs a = M.Map a Int
 
 genFrase :: String -> Int -> StdGen -> String
 genFrase str len randGen = unwords $ reverse $ fst $ foldl addNextWord ([firstWord], randGen') [1..len]
@@ -14,7 +14,7 @@ genFrase str len randGen = unwords $ reverse $ fst $ foldl addNextWord ([firstWo
         addNextWord ((x:xs), randGen) _ = (next:x:xs, randGen')
           where (next, randGen') = nextWord probs x randGen
 
-nextWord :: M.Map String Probs -> String -> StdGen -> (String, StdGen)
+nextWord :: (Eq a, Ord a) => M.Map a (Probs a) -> a -> StdGen -> (a, StdGen)
 nextWord probs prevWord randGen = case mapProbs' of Just a  -> weightedRandom (M.toList a) randGen
                                                     Nothing -> randomElement (M.keys probs) randGen --fallback to random word
   where mapProbs' = M.lookup prevWord probs
@@ -30,7 +30,7 @@ weightedRandom list randGen = randomElement weightedList randGen
 
 genProb = addProb M.empty
 
-addProb :: M.Map String Probs -> [String] -> M.Map String Probs
+addProb :: (Eq a, Ord a) => M.Map a (Probs a) -> [a] -> M.Map a (Probs a)
 addProb p [] = p
 addProb p (_:[]) = p
 addProb p (x:y:xn) = addProb (M.insertWith (\_ a -> M.insertWith (+) y 1 a) x (M.singleton y 1) p) (y:xn)
