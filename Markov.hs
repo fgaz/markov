@@ -1,22 +1,15 @@
 module Markov where
 
-import System.IO
 import qualified Data.Map as M
-import System.Random
-import System.Environment
-import System.Exit
+import System.Random (StdGen, randomR)
 
---type Probs a = M.Map a Int
-
---type ChainData = (Eq a, Ord a) => M.Map a (Probs a)
 
 genChain :: (Ord a, Integral i) => [a] -> i -> StdGen -> [a]
 genChain list len randGen = reverse $ fst $ foldl addNextElem ([firstElem], randGen') [1..len]
   where probs = genProb list
         (firstElem, randGen') = randomElement (M.keys probs) randGen
-        --addNextElem :: (Eq a, Ord a) => ([a], StdGen) -> a -> ([a], StdGen)
-        addNextElem ((x:xs), randGen) _ = (next:x:xs, randGen')
-          where (next, randGen') = nextElem probs x randGen
+        addNextElem ((x:xs), rand) _ = (next:x:xs, rand')
+          where (next, rand') = nextElem probs x rand
 
 nextElem :: (Eq a, Ord a) => M.Map a (M.Map a Int) -> a -> StdGen -> (a, StdGen)
 nextElem probs prevWord randGen = case mapProbs' of Just a  -> weightedRandom (M.toList a) randGen

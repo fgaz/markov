@@ -5,6 +5,7 @@ import System.Exit (exitFailure)
 import Markov (genChain)
 
 
+main :: IO ()
 main = do
     args <- getArgs
     if length args /= 2 then do
@@ -14,5 +15,5 @@ main = do
     handle <- openFile (args !! 1) ReadMode
     contents <- hGetContents handle
     randGen <- getStdGen
-    let len = read $ head args
+    let len = (read $ head args) :: Integer
     putStrLn $ unwords $ genChain (words contents) len randGen
