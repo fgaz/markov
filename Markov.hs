@@ -27,6 +27,7 @@ randomElement :: [a] -> StdGen -> (a, StdGen)
 randomElement list randGen = (list !! randomIndex , randGen')
   where (randomIndex, randGen') = randomR (0,length list - 1) randGen
 
+-- FIXME this is reeeally inefficient for large probabilities: O(sum of all weights)
 weightedRandom :: Integral i => [(a,i)] -> StdGen -> (a, StdGen)
 weightedRandom list randGen = randomElement weightedList randGen
   where weightedList = concat $ map (\(x,prob) -> replicate (fromIntegral prob) x) list
